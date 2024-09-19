@@ -19,17 +19,48 @@ pub enum OpCode {
     JLE = 13,
 }
 
-pub union Operand {
-    pub literal: Literal,
-    pub register_index: u8,
-    pub mem_address: *mut str,
+pub enum Operand {
+    Literal(Literal),
+    RegisterIndex(u8),
+}
+
+pub enum OperandType {
+    Literal,
+    RegisterIndex,
+    Any,
+}
+
+impl From<u8> for OperandType {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => OperandType::RegisterIndex,
+            1 | 2 | 3 | 4 => OperandType::Literal,
+            _ => panic!("Invalid operand type: {:?}", value),
+        }
+    }
 }
 
 #[derive(Copy, Clone)]
-pub union Literal {
-    pub int: i64,
-    pub float: f64,
-    pub string: &'static str,
+pub enum Literal {
+    Int(i64),
+    Float(f64),
+    String(&'static str),
+    Bool(bool),
+}
+
+impl OpCode {
+    pub fn expected_operands(&self) -> &[OperandType] {
+        use OpCode::*;
+        use OperandType::*;
+        match self {
+            STOP => &[],
+            LOAD => &[RegisterIndex, Literal],
+            ADD | SUB | MUL | DIV => &[RegisterIndex, Any, Any],
+            PRINT | JMP | JMPB | JMPF | JL => &[Any],
+            JMPE | JLE => &[Any, Any, Any],
+            CL => &[Literal],
+        }
+    }
 }
 
 impl From<u8> for OpCode {

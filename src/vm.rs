@@ -1,14 +1,12 @@
-use crate::operations::{Literal, OpCode, Operand};
+use crate::operations::{Literal, OpCode, Operand, OperandType};
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct VM {
     pub registers: [u32; 32],
     pub program: Vec<u8>,
     pub program_counter: usize,
     // Name and location of the label
-    pub labels: Vec<(u8, usize)>,
-    // Strings
-    pub strings: Vec<&'static str>,
+    pub labels: Vec<(Literal, usize)>,
 }
 
 impl VM {
@@ -19,6 +17,14 @@ impl VM {
                 break;
             }
             let opcode = self.decode_opcode();
+            if opcode == OpCode::STOP {
+                self.halt();
+            }
+
+            let operand_type: OperandType = self.read_next_byte().into();
+
+            if operand_type == opcode.expected_operands() {}
+
             self.execute(&opcode);
         }
     }
@@ -34,29 +40,14 @@ impl VM {
         let operand = i64::from_le_bytes(self.read_next_8_bytes());
 
         match operand_type {
-            0 => Operand {
-                register_index: operand as u8,
-            },
-            1 => Operand {
-                literal: Literal { int: operand },
-            },
-            2 => Operand {
-                literal: Literal {
-                    float: unsafe { std::mem::transmute(operand) },
-                },
-            },
-            3 => Operand {
-                literal: Literal {
-                    string: unsafe {
-                        let str_length = self.read_next_8_bytes();
-                        let slice = std::slice::from_raw_parts(
-                            operand as *const u8,
-                            usize::from_le_bytes(str_length),
-                        );
-                        std::str::from_utf8_unchecked(slice)
-                    },
-                },
-            },
+            0 => Operand::RegisterIndex(operand as u8),
+            1 => Operand::Literal(Literal::Int(operand)),
+            2 => Operand::Literal(Literal::Float(unsafe { std::mem::transmute(operand) })),
+            3 => Operand::Literal(Literal::String(unsafe {
+                let len: usize = std::mem::transmute(operand);
+                let str_content = self.read_n_bytes_vec(len);
+                std::mem::transmute(std::str::from_utf8_unchecked(str_content.as_slice()))
+            })),
             _ => panic!("Found invalid operand type"),
         }
     }
@@ -66,7 +57,15 @@ impl VM {
     }
 
     pub fn read_next_byte(&mut self) -> u8 {
-        self.read_n_bytes::<1>()[0]
+        let byte = self.program[self.program_counter];
+        self.program_counter += 1;
+        byte
+    }
+
+    pub fn read_n_bytes_vec(&mut self, num: usize) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::with_capacity(num);
+        let _ = (0..num).map(|x| bytes[x] = self.read_next_byte());
+        bytes
     }
 
     pub fn read_next_8_bytes(&mut self) -> [u8; 8] {
@@ -75,8 +74,7 @@ impl VM {
 
     pub fn read_n_bytes<const N: usize>(&mut self) -> [u8; N] {
         let mut bytes = [0u8; N];
-        (0..N).map(|x| bytes[x] = self.program[self.program_counter + x]);
-        self.program_counter += N;
+        let _ = (0..N).map(|x| bytes[x] = self.read_next_byte());
         bytes
     }
 
