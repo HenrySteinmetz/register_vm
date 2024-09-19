@@ -1,15 +1,15 @@
-use crate::operations::{Literal, OpCode, Operand, OperandType};
+use crate::operations::{Literal, LiteralType, OpCode, Operand, OperandType};
 
 #[derive(Default)]
-pub struct VM {
+pub struct VM<'a> {
     pub registers: [u32; 32],
     pub program: Vec<u8>,
     pub program_counter: usize,
     // Name and location of the label
-    pub labels: Vec<(Literal, usize)>,
+    pub labels: Vec<(&'a str, usize)>,
 }
 
-impl VM {
+impl<'a> VM<'a> {
     pub fn run(&mut self, program: Vec<u8>) {
         loop {
             self.program = program.clone();
@@ -21,34 +21,44 @@ impl VM {
                 self.halt();
             }
 
-            let operand_type: OperandType = self.read_next_byte().into();
+            let mut operands: Vec<Operand> = Vec::with_capacity(4);
+            for param in opcode.expected_operands() {
+                let operand_type: OperandType = self.read_next_byte().into();
+                if &operand_type != param {
+                    panic!("Expected operand type {:?}, found {:?}", param, operand_type);
+                }
 
-            if operand_type == opcode.expected_operands() {}
+                operands.push(self.decode_operand(operand_type));
+            }
 
-            self.execute(&opcode);
+            self.execute(&opcode, operands);
         }
     }
 
     pub fn decode_opcode(&mut self) -> OpCode {
-        let opcode = OpCode::from(self.program[self.program_counter]);
-        self.program_counter += 1;
-        opcode
+        OpCode::from(self.read_next_byte())
     }
 
-    pub fn decode_operand(&mut self) -> Operand {
-        let operand_type = self.read_next_byte();
-        let operand = i64::from_le_bytes(self.read_next_8_bytes());
-
-        match operand_type {
-            0 => Operand::RegisterIndex(operand as u8),
-            1 => Operand::Literal(Literal::Int(operand)),
-            2 => Operand::Literal(Literal::Float(unsafe { std::mem::transmute(operand) })),
-            3 => Operand::Literal(Literal::String(unsafe {
-                let len: usize = std::mem::transmute(operand);
-                let str_content = self.read_n_bytes_vec(len);
-                std::mem::transmute(std::str::from_utf8_unchecked(str_content.as_slice()))
-            })),
-            _ => panic!("Found invalid operand type"),
+    pub fn decode_operand(&mut self, op_type: OperandType) -> Operand {
+        match op_type {
+            OperandType::RegisterIndex => Operand::RegisterIndex(self.read_next_byte()),
+            OperandType::Literal(l_type) => Operand::Literal(self.decode_literal(l_type)), 
+            OperandType::Any => unreachable!()
+        }
+    }
+    
+    pub fn decode_literal(&mut self, l_type: LiteralType) -> Literal {
+        match l_type {
+            LiteralType::Int => Literal::Int(i64::from_le_bytes(self.read_next_8_bytes())),
+            LiteralType::Float => Literal::Float(f64::from_le_bytes(self.read_next_8_bytes())),
+            LiteralType::String => {
+                let len = usize::from_le_bytes(self.read_next_8_bytes());
+                let bytes = self.read_n_bytes_vec(len);
+                let string = std::str::from_utf8(bytes.as_slice()).unwrap();
+                Literal::String(string)
+            }
+            LiteralType::Bool => Literal::Bool(self.read_next_byte() == 1),
+            _ => unreachable!(),
         }
     }
 
@@ -78,11 +88,11 @@ impl VM {
         bytes
     }
 
-    pub fn new() -> VM {
+    pub fn new() -> VM<'static> {
         VM::default()
     }
 
-    fn execute(&mut self, operation: &OpCode) {
+    fn execute(&mut self, operation: &OpCode, operands: Vec<Operand>) {
         use OpCode::*;
         match operation {
             STOP => self.halt(),

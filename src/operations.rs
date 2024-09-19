@@ -19,13 +19,24 @@ pub enum OpCode {
     JLE = 13,
 }
 
-pub enum Operand {
-    Literal(Literal),
+#[derive(Debug)]
+pub enum Operand<'a> {
+    Literal(Literal<'a>),
     RegisterIndex(u8),
 }
 
+impl<'a> Operand<'a> {
+    pub fn op_type(&self) -> OperandType {
+        match self {
+            Operand::Literal(x) => OperandType::Literal(x.l_type()),
+            Operand::RegisterIndex(_) => OperandType::RegisterIndex,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub enum OperandType {
-    Literal,
+    Literal(LiteralType),
     RegisterIndex,
     Any,
 }
@@ -34,18 +45,41 @@ impl From<u8> for OperandType {
     fn from(value: u8) -> Self {
         match value {
             0 => OperandType::RegisterIndex,
-            1 | 2 | 3 | 4 => OperandType::Literal,
+            1 => OperandType::Literal(LiteralType::Int),
+            2 => OperandType::Literal(LiteralType::Float),
+            3 => OperandType::Literal(LiteralType::String),
+            4 => OperandType::Literal(LiteralType::Bool),
             _ => panic!("Invalid operand type: {:?}", value),
         }
     }
 }
 
-#[derive(Copy, Clone)]
-pub enum Literal {
+#[derive(Copy, Clone, Debug)]
+pub enum Literal<'a> {
     Int(i64),
     Float(f64),
-    String(&'static str),
+    String(&'a str),
     Bool(bool),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum LiteralType {
+    Int,
+    Float,
+    String,
+    Bool,
+    Any,
+}
+
+impl<'a> Literal<'a> {
+    pub fn l_type(&self) -> LiteralType {
+        match self {
+            Literal::Int(_) => LiteralType::Int,
+            Literal::Float(_) => LiteralType::Float,
+            Literal::String(_) => LiteralType::String,
+            Literal::Bool(_) => LiteralType::Bool,
+        }
+    }
 }
 
 impl OpCode {
@@ -54,12 +88,16 @@ impl OpCode {
         use OperandType::*;
         match self {
             STOP => &[],
-            LOAD => &[RegisterIndex, Literal],
+            LOAD => &[RegisterIndex, Literal(LiteralType::Any)],
             ADD | SUB | MUL | DIV => &[RegisterIndex, Any, Any],
             PRINT | JMP | JMPB | JMPF | JL => &[Any],
             JMPE | JLE => &[Any, Any, Any],
-            CL => &[Literal],
+            CL => &[Literal(LiteralType::String)],
         }
+    }
+    
+    pub fn expected_operands_count(&self) -> usize {
+        self.expected_operands().len()
     }
 }
 
