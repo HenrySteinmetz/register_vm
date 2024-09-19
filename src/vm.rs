@@ -1,13 +1,14 @@
-use crate::operations::OpCode;
-use crate::utils::ToU16;
+use crate::operations::{Literal, OpCode, Operand};
 
 #[derive(Default, Debug)]
 pub struct VM {
-    registers: [u32; 32],
-    program: Vec<u8>,
-    program_counter: usize,
+    pub registers: [u32; 32],
+    pub program: Vec<u8>,
+    pub program_counter: usize,
     // Name and location of the label
-    labels: Vec<(u8, usize)>,
+    pub labels: Vec<(u8, usize)>,
+    // Strings
+    pub strings: Vec<&'static str>,
 }
 
 impl VM {
@@ -28,27 +29,54 @@ impl VM {
         opcode
     }
 
+    pub fn decode_operand(&mut self) -> Operand {
+        let operand_type = self.read_next_byte();
+        let operand = i64::from_le_bytes(self.read_next_8_bytes());
+
+        match operand_type {
+            0 => Operand {
+                register_index: operand as u8,
+            },
+            1 => Operand {
+                literal: Literal { int: operand },
+            },
+            2 => Operand {
+                literal: Literal {
+                    float: unsafe { std::mem::transmute(operand) },
+                },
+            },
+            3 => Operand {
+                literal: Literal {
+                    string: unsafe {
+                        let str_length = self.read_next_8_bytes();
+                        let slice = std::slice::from_raw_parts(
+                            operand as *const u8,
+                            usize::from_le_bytes(str_length),
+                        );
+                        std::str::from_utf8_unchecked(slice)
+                    },
+                },
+            },
+            _ => panic!("Found invalid operand type"),
+        }
+    }
+
     pub fn halt(&self) {
         std::process::exit(0);
     }
 
     pub fn read_next_byte(&mut self) -> u8 {
-        let byte = self.program[self.program_counter];
-        self.program_counter += 1;
-        byte
+        self.read_n_bytes::<1>()[0]
     }
 
-    pub fn read_next_byte_as_register(&mut self) -> u32 {
-        let index = self.read_next_byte() as usize;
-        self.registers[index]
+    pub fn read_next_8_bytes(&mut self) -> [u8; 8] {
+        self.read_n_bytes::<8>()
     }
 
-    pub fn read_next_two_bytes(&mut self) -> [u8; 2] {
-        let bytes = [
-            self.program[self.program_counter],
-            self.program[self.program_counter + 1],
-        ];
-        self.program_counter += 2;
+    pub fn read_n_bytes<const N: usize>(&mut self) -> [u8; N] {
+        let mut bytes = [0u8; N];
+        (0..N).map(|x| bytes[x] = self.program[self.program_counter + x]);
+        self.program_counter += N;
         bytes
     }
 
@@ -60,88 +88,19 @@ impl VM {
         use OpCode::*;
         match operation {
             STOP => self.halt(),
-            LOAD => {
-                let register = self.read_next_byte() as usize;
-                let value = self.read_next_two_bytes().to_u16();
-                self.registers[register] = value as u32;
-            }
-            ADD => {
-                let output = self.read_next_byte() as usize;
-                let input = self.read_next_two_bytes();
-                self.registers[output] =
-                    (self.registers[input[0] as usize] + self.registers[input[1] as usize]) as u32;
-            }
-            SUB => {
-                let output = self.read_next_byte() as usize;
-                let input = self.read_next_two_bytes();
-                self.registers[output] =
-                    (self.registers[input[0] as usize] - self.registers[input[1] as usize]) as u32;
-            }
-            MUL => {
-                let output = self.read_next_byte() as usize;
-                let input = self.read_next_two_bytes();
-                self.registers[output] =
-                    (self.registers[input[0] as usize] * self.registers[input[1] as usize]) as u32;
-            }
-            DIV => {
-                let output = self.read_next_byte() as usize;
-                let input = self.read_next_two_bytes();
-                self.registers[output] =
-                    (self.registers[input[0] as usize] / self.registers[input[1] as usize]) as u32;
-            }
-            PRINT => {
-                println!("{}", self.read_next_byte_as_register());
-            }
-            JMP => {
-                let position = self.read_next_byte_as_register() as usize;
-                self.program_counter = position;
-            }
-            JMPB => {
-                let factor = self.read_next_byte_as_register() as usize;
-                self.program_counter -= factor;
-            }
-            JMPF => {
-                let factor = self.read_next_byte_as_register() as usize;
-                self.program_counter += factor;
-            }
-            JMPE => {
-                let op1 = self.read_next_byte_as_register();
-                let op2 = self.read_next_byte_as_register();
-                let pos = self.read_next_byte() as usize;
-
-                if op1 == op2 {
-                    self.program_counter = pos;
-                }
-            }
-            CL => {
-                let name = self.read_next_byte_as_register() as u8;
-                self.labels.push((name, self.program_counter));
-            }
-            JL => {
-                let name = self.read_next_byte_as_register() as u8;
-                let label = self
-                    .labels
-                    .iter()
-                    .find(|label| label.0 == name)
-                    .expect("Invalid label");
-
-                self.program_counter = label.1;
-            }
-            JLE => {
-                let name = self.read_next_byte_as_register() as u8;
-                let op1 = self.read_next_byte_as_register();
-                let op2 = self.read_next_byte_as_register();
-
-                if op1 == op2 {
-                    let label = self
-                        .labels
-                        .iter()
-                        .find(|label| label.0 == name)
-                        .expect("Invalid label");
-
-                    self.program_counter = label.1;
-                }
-            }
+            LOAD => {}
+            ADD => {}
+            SUB => {}
+            MUL => {}
+            DIV => {}
+            PRINT => {}
+            JMP => {}
+            JMPB => {}
+            JMPF => {}
+            JMPE => {}
+            CL => {}
+            JL => {}
+            JLE => {}
         }
     }
 }

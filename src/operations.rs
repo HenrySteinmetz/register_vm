@@ -1,4 +1,6 @@
-#[derive(PartialEq, Debug, Clone)]
+use strum::{EnumIter, EnumString};
+
+#[derive(PartialEq, Debug, Clone, EnumString, EnumIter)]
 #[repr(u8)]
 pub enum OpCode {
     STOP = 0,
@@ -15,6 +17,19 @@ pub enum OpCode {
     CL = 11,
     JL = 12,
     JLE = 13,
+}
+
+pub union Operand {
+    pub literal: Literal,
+    pub register_index: u8,
+    pub mem_address: *mut str,
+}
+
+#[derive(Copy, Clone)]
+pub union Literal {
+    pub int: i64,
+    pub float: f64,
+    pub string: &'static str,
 }
 
 impl From<u8> for OpCode {
@@ -35,6 +50,27 @@ impl From<u8> for OpCode {
             12 => OpCode::JL,
             13 => OpCode::JLE,
             _ => panic!("Invalid OpCode"),
+        }
+    }
+}
+
+impl Into<String> for OpCode {
+    fn into(self) -> String {
+        match self {
+            OpCode::STOP => "STOP".to_string(),
+            OpCode::LOAD => "LOAD".to_string(),
+            OpCode::ADD => "ADD".to_string(),
+            OpCode::SUB => "SUB".to_string(),
+            OpCode::MUL => "MUL".to_string(),
+            OpCode::DIV => "DIV".to_string(),
+            OpCode::PRINT => "PRINT".to_string(),
+            OpCode::JMP => "JMP".to_string(),
+            OpCode::JMPB => "JMPB".to_string(),
+            OpCode::JMPF => "JMPF".to_string(),
+            OpCode::JMPE => "JMPE".to_string(),
+            OpCode::CL => "CL".to_string(),
+            OpCode::JL => "JL".to_string(),
+            OpCode::JLE => "JLE".to_string(),
         }
     }
 }

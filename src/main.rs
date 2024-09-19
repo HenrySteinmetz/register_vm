@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests;
 
-mod lexer;
 mod operations;
 mod parser;
 mod utils;
