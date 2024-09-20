@@ -41,7 +41,7 @@ impl<'a> VM<'a> {
 
     pub fn decode_operand(&mut self, op_type: OperandType) -> Operand {
         match op_type {
-            OperandType::RegisterIndex => Operand::RegisterIndex(self.read_next_byte()),
+            OperandType::RegisterValue => Operand::RegisterValue(self.registers[self.read_next_byte() as usize]),
             OperandType::Literal(l_type) => Operand::Literal(self.decode_literal(l_type)), 
             OperandType::Any => unreachable!()
         }
@@ -54,7 +54,7 @@ impl<'a> VM<'a> {
             LiteralType::String => {
                 let len = usize::from_le_bytes(self.read_next_8_bytes());
                 let bytes = self.read_n_bytes_vec(len);
-                let string = std::str::from_utf8(bytes.as_slice()).unwrap();
+                let string = std::str::from_utf8(bytes.as_slice()).expect("Invalid UTF-8 string!");
                 Literal::String(string)
             }
             LiteralType::Bool => Literal::Bool(self.read_next_byte() == 1),
@@ -96,7 +96,8 @@ impl<'a> VM<'a> {
         use OpCode::*;
         match operation {
             STOP => self.halt(),
-            LOAD => {}
+            LOAD => {
+            }
             ADD => {}
             SUB => {}
             MUL => {}

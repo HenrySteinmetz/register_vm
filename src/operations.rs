@@ -22,13 +22,15 @@ pub enum OpCode {
 #[derive(Debug)]
 pub enum Operand<'a> {
     Literal(Literal<'a>),
-    RegisterIndex(u8),
+    RegisterValue(u32),
+    RegisterIndex(usize),
 }
 
 impl<'a> Operand<'a> {
     pub fn op_type(&self) -> OperandType {
         match self {
             Operand::Literal(x) => OperandType::Literal(x.l_type()),
+            Operand::RegisterValue(_) => OperandType::RegisterValue,
             Operand::RegisterIndex(_) => OperandType::RegisterIndex,
         }
     }
@@ -38,17 +40,19 @@ impl<'a> Operand<'a> {
 pub enum OperandType {
     Literal(LiteralType),
     RegisterIndex,
+    RegisterValue,
     Any,
 }
 
 impl From<u8> for OperandType {
     fn from(value: u8) -> Self {
         match value {
-            0 => OperandType::RegisterIndex,
+            0 => OperandType::RegisterValue,
             1 => OperandType::Literal(LiteralType::Int),
             2 => OperandType::Literal(LiteralType::Float),
             3 => OperandType::Literal(LiteralType::String),
             4 => OperandType::Literal(LiteralType::Bool),
+            5 => OperandType::RegisterIndex,
             _ => panic!("Invalid operand type: {:?}", value),
         }
     }
