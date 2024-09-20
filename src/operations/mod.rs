@@ -1,6 +1,21 @@
-use strum::{EnumIter, EnumString};
+pub mod add;
+pub mod cl;
+pub mod div;
+pub mod jl;
+pub mod jle;
+pub mod jmp;
+pub mod jmpb;
+pub mod jmpe;
+pub mod jmpf;
+pub mod load;
+pub mod mul;
+pub mod print;
+pub mod stop;
+pub mod sub;
 
-#[derive(PartialEq, Debug, Clone, EnumString, EnumIter)]
+use crate::operands::{literals::LiteralType, OperandType};
+
+#[derive(PartialEq, Debug, Clone)]
 #[repr(u8)]
 pub enum OpCode {
     STOP = 0,
@@ -19,73 +34,6 @@ pub enum OpCode {
     JLE = 13,
 }
 
-#[derive(Debug)]
-pub enum Operand<'a> {
-    Literal(Literal<'a>),
-    RegisterValue(u32),
-    RegisterIndex(usize),
-}
-
-impl<'a> Operand<'a> {
-    pub fn op_type(&self) -> OperandType {
-        match self {
-            Operand::Literal(x) => OperandType::Literal(x.l_type()),
-            Operand::RegisterValue(_) => OperandType::RegisterValue,
-            Operand::RegisterIndex(_) => OperandType::RegisterIndex,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum OperandType {
-    Literal(LiteralType),
-    RegisterIndex,
-    RegisterValue,
-    Any,
-}
-
-impl From<u8> for OperandType {
-    fn from(value: u8) -> Self {
-        match value {
-            0 => OperandType::RegisterValue,
-            1 => OperandType::Literal(LiteralType::Int),
-            2 => OperandType::Literal(LiteralType::Float),
-            3 => OperandType::Literal(LiteralType::String),
-            4 => OperandType::Literal(LiteralType::Bool),
-            5 => OperandType::RegisterIndex,
-            _ => panic!("Invalid operand type: {:?}", value),
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum Literal<'a> {
-    Int(i64),
-    Float(f64),
-    String(&'a str),
-    Bool(bool),
-}
-
-#[derive(Debug, PartialEq)]
-pub enum LiteralType {
-    Int,
-    Float,
-    String,
-    Bool,
-    Any,
-}
-
-impl<'a> Literal<'a> {
-    pub fn l_type(&self) -> LiteralType {
-        match self {
-            Literal::Int(_) => LiteralType::Int,
-            Literal::Float(_) => LiteralType::Float,
-            Literal::String(_) => LiteralType::String,
-            Literal::Bool(_) => LiteralType::Bool,
-        }
-    }
-}
-
 impl OpCode {
     pub fn expected_operands(&self) -> &[OperandType] {
         use OpCode::*;
@@ -94,12 +42,14 @@ impl OpCode {
             STOP => &[],
             LOAD => &[RegisterIndex, Literal(LiteralType::Any)],
             ADD | SUB | MUL | DIV => &[RegisterIndex, Any, Any],
-            PRINT | JMP | JMPB | JMPF | JL => &[Any],
-            JMPE | JLE => &[Any, Any, Any],
+            PRINT => &[Any],
+            JMP | JMPB | JMPF => &[Literal(LiteralType::Int)],
+            JL => &[Literal(LiteralType::String)],
+            JMPE | JLE => &[Literal(LiteralType::Int), Any, Any],
             CL => &[Literal(LiteralType::String)],
         }
     }
-    
+
     pub fn expected_operands_count(&self) -> usize {
         self.expected_operands().len()
     }

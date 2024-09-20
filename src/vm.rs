@@ -1,60 +1,50 @@
-use crate::operations::{Literal, LiteralType, OpCode, Operand, OperandType};
+use std::collections::HashMap;
+
+use crate::operands::{
+    literals::{Literal, LiteralType},
+    register_values::RegisterValue,
+    Operand, OperandType,
+};
+
+use crate::operations::OpCode;
 
 #[derive(Default)]
-pub struct VM<'a> {
-    pub registers: [u32; 32],
+pub struct VM {
+    // Value and type of the register
+    pub registers: [(RegisterValue, u8); 32],
     pub program: Vec<u8>,
     pub program_counter: usize,
     // Name and location of the label
-    pub labels: Vec<(&'a str, usize)>,
+    pub labels: HashMap<String, usize>,
+    pub strings: Vec<String>,
 }
 
-impl<'a> VM<'a> {
-    pub fn run(&mut self, program: Vec<u8>) {
-        loop {
-            self.program = program.clone();
-            if self.program_counter >= self.program.len() {
-                break;
-            }
-            let opcode = self.decode_opcode();
-            if opcode == OpCode::STOP {
-                self.halt();
-            }
-
-            let mut operands: Vec<Operand> = Vec::with_capacity(4);
-            for param in opcode.expected_operands() {
-                let operand_type: OperandType = self.read_next_byte().into();
-                if &operand_type != param {
-                    panic!("Expected operand type {:?}, found {:?}", param, operand_type);
-                }
-
-                operands.push(self.decode_operand(operand_type));
-            }
-
-            self.execute(&opcode, operands);
-        }
-    }
-
+impl VM {
     pub fn decode_opcode(&mut self) -> OpCode {
         OpCode::from(self.read_next_byte())
     }
 
-    pub fn decode_operand(&mut self, op_type: OperandType) -> Operand {
+    pub fn decode_operand(&mut self, op_type: &OperandType) -> Operand {
         match op_type {
-            OperandType::RegisterValue => Operand::RegisterValue(self.registers[self.read_next_byte() as usize]),
-            OperandType::Literal(l_type) => Operand::Literal(self.decode_literal(l_type)), 
-            OperandType::Any => unreachable!()
+            OperandType::RegisterIndex => Operand::RegisterIndex(self.read_next_byte() as usize),
+            OperandType::RegisterValue => {
+                Operand::RegisterValue(self.registers[self.read_next_byte() as usize].0)
+            }
+            OperandType::Literal(l_type) => Operand::Literal(self.decode_literal(l_type)),
+            OperandType::Any => unreachable!(),
         }
     }
-    
-    pub fn decode_literal(&mut self, l_type: LiteralType) -> Literal {
+
+    pub fn decode_literal(&mut self, l_type: &LiteralType) -> Literal {
         match l_type {
             LiteralType::Int => Literal::Int(i64::from_le_bytes(self.read_next_8_bytes())),
             LiteralType::Float => Literal::Float(f64::from_le_bytes(self.read_next_8_bytes())),
             LiteralType::String => {
                 let len = usize::from_le_bytes(self.read_next_8_bytes());
                 let bytes = self.read_n_bytes_vec(len);
-                let string = std::str::from_utf8(bytes.as_slice()).expect("Invalid UTF-8 string!");
+                let string = std::str::from_utf8(bytes.as_slice())
+                    .expect("Invalid UTF-8 string!")
+                    .to_owned();
                 Literal::String(string)
             }
             LiteralType::Bool => Literal::Bool(self.read_next_byte() == 1),
@@ -88,28 +78,61 @@ impl<'a> VM<'a> {
         bytes
     }
 
-    pub fn new() -> VM<'static> {
+    pub fn new() -> VM {
         VM::default()
+    }
+
+    pub fn alloc_string(&mut self, str: String) -> *const String {
+        self.strings.push(str);
+        let string_idx = self.strings.len() - 1;
+        (&self.strings[string_idx]) as *const String
+    }
+
+    pub fn run(&mut self, program: Vec<u8>) {
+        loop {
+            self.program = program.clone();
+            if self.program_counter >= self.program.len() {
+                break;
+            }
+            let opcode = self.decode_opcode();
+            if opcode == OpCode::STOP {
+                self.halt();
+            }
+
+            let mut operands: Vec<Operand> = Vec::with_capacity(4);
+            for param in opcode.expected_operands() {
+                let operand_type: OperandType = self.read_next_byte().into();
+                if &operand_type != param {
+                    panic!(
+                        "Expected operand type {:?}, found {:?}",
+                        param, operand_type
+                    );
+                }
+
+                operands.push(self.decode_operand(&operand_type));
+            }
+
+            self.execute(&opcode, operands);
+        }
     }
 
     fn execute(&mut self, operation: &OpCode, operands: Vec<Operand>) {
         use OpCode::*;
         match operation {
-            STOP => self.halt(),
-            LOAD => {
-            }
-            ADD => {}
-            SUB => {}
-            MUL => {}
-            DIV => {}
-            PRINT => {}
-            JMP => {}
-            JMPB => {}
-            JMPF => {}
-            JMPE => {}
-            CL => {}
-            JL => {}
-            JLE => {}
+            STOP => self.stop(),
+            LOAD => self.load(operands),
+            ADD => self.add(operands),
+            SUB => self.sub(operands),
+            MUL => self.mul(operands),
+            DIV => self.div(operands),
+            PRINT => self.print(operands),
+            JMP => self.jmp(operands),
+            JMPB => self.jmpb(operands),
+            JMPF => self.jmpf(operands),
+            JMPE => self.jmpe(operands),
+            CL => self.cl(operands),
+            JL => self.jl(operands),
+            JLE => self.jle(operands),
         }
     }
 }

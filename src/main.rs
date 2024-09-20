@@ -1,9 +1,8 @@
 #[cfg(test)]
 mod tests;
 
+mod operands;
 mod operations;
-mod parser;
-mod utils;
 mod vm;
 
 fn main() {
