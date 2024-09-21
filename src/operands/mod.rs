@@ -34,12 +34,25 @@ impl std::fmt::Display for Operand {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum OperandType {
     Literal(LiteralType),
     RegisterIndex,
     RegisterValue,
     Any,
+}
+
+impl PartialEq for OperandType {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (OperandType::Literal(a), OperandType::Literal(b)) => a == b,
+            (OperandType::RegisterIndex, OperandType::RegisterIndex) => true,
+            (OperandType::RegisterValue, OperandType::RegisterValue) => true,
+            (OperandType::Any, _) => true,
+            (_, OperandType::Any) => true,
+            _ => false,
+        }
+    }
 }
 
 impl From<u8> for OperandType {

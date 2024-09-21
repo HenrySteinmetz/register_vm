@@ -9,17 +9,6 @@ pub enum Literal {
 }
 
 impl Literal {
-    pub fn l_type(&self) -> LiteralType {
-        match self {
-            Literal::Int(_) => LiteralType::Int,
-            Literal::Float(_) => LiteralType::Float,
-            Literal::String(_) => LiteralType::String,
-            Literal::Bool(_) => LiteralType::Bool,
-        }
-    }
-}
-
-impl Literal {
     pub fn get_num(&self) -> Number {
         match self {
             Self::Int(int) => Number::Int(*int),
@@ -59,6 +48,15 @@ impl Literal {
             Self::Bool(_) => panic!("Invalid literal type: expected a string but got: `Bool`"),
         }
     }
+
+    pub fn l_type(&self) -> LiteralType {
+        match self {
+            Literal::Int(_) => LiteralType::Int,
+            Literal::Float(_) => LiteralType::Float,
+            Literal::String(_) => LiteralType::String,
+            Literal::Bool(_) => LiteralType::Bool,
+        }
+    }
 }
 
 impl std::fmt::Display for Literal {
@@ -72,7 +70,7 @@ impl std::fmt::Display for Literal {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 #[repr(u8)]
 pub enum LiteralType {
     Int = 0,
@@ -80,6 +78,20 @@ pub enum LiteralType {
     String = 2,
     Bool = 3,
     Any = 255,
+}
+
+impl PartialEq for LiteralType {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (LiteralType::Int, LiteralType::Int) => true,
+            (LiteralType::Float, LiteralType::Float) => true,
+            (LiteralType::String, LiteralType::String) => true,
+            (LiteralType::Bool, LiteralType::Bool) => true,
+            (LiteralType::Any, _) => true,
+            (_, LiteralType::Any) => true,
+            _ => false,
+        }
+    }
 }
 
 impl From<u8> for LiteralType {

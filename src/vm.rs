@@ -101,7 +101,9 @@ impl VM {
 
             let mut operands: Vec<Operand> = Vec::with_capacity(4);
             for param in opcode.expected_operands() {
-                let operand_type: OperandType = self.read_next_byte().into();
+                let next_byte = self.read_next_byte();
+                println!("{}", next_byte);
+                let operand_type: OperandType = next_byte.into();
                 if &operand_type != param {
                     panic!(
                         "Expected operand type {:?}, found {:?}",

@@ -49,10 +49,6 @@ impl OpCode {
             CL => &[Literal(LiteralType::String)],
         }
     }
-
-    pub fn expected_operands_count(&self) -> usize {
-        self.expected_operands().len()
-    }
 }
 
 impl From<u8> for OpCode {
