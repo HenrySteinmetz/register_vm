@@ -1,6 +1,8 @@
 pub mod add;
 pub mod cl;
+pub mod dec;
 pub mod div;
+pub mod inc;
 pub mod jl;
 pub mod jle;
 pub mod jmp;
@@ -32,6 +34,8 @@ pub enum OpCode {
     CL = 11,
     JL = 12,
     JLE = 13,
+    INC = 14,
+    DEC = 15,
 }
 
 impl OpCode {
@@ -47,6 +51,7 @@ impl OpCode {
             JL => &[Literal(LiteralType::String)],
             JMPE | JLE => &[Literal(LiteralType::Int), Any, Any],
             CL => &[Literal(LiteralType::String)],
+            INC | DEC => &[RegisterIndex],
         }
     }
 }
@@ -90,6 +95,8 @@ impl Into<String> for OpCode {
             OpCode::CL => "CL".to_string(),
             OpCode::JL => "JL".to_string(),
             OpCode::JLE => "JLE".to_string(),
+            OpCode::INC => "INC".to_string(),
+            OpCode::DEC => "DEC".to_string(),
         }
     }
 }

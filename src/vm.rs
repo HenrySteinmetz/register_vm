@@ -178,6 +178,8 @@ impl VM {
             CL => self.cl(operands),
             JL => self.jl(operands),
             JLE => self.jle(operands),
+            INC => self.inc(operands),
+            DEC => self.dec(operands),
         }
     }
 }
