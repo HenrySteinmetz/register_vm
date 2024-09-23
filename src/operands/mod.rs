@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 pub mod literals;
 pub mod numbers;
@@ -28,7 +28,7 @@ impl std::fmt::Display for Operand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Literal(x) => Display::fmt(x, f),
-            Self::RegisterValue(x) => Display::fmt(x, f),
+            Self::RegisterValue(x) => Debug::fmt(x, f),
             Self::RegisterIndex(x) => write!(f, "{}", x),
         }
     }
@@ -58,12 +58,12 @@ impl PartialEq for OperandType {
 impl From<u8> for OperandType {
     fn from(value: u8) -> Self {
         match value {
-            0 => OperandType::RegisterValue,
+            0 => OperandType::RegisterIndex,
             1 => OperandType::Literal(LiteralType::Int),
             2 => OperandType::Literal(LiteralType::Float),
             3 => OperandType::Literal(LiteralType::String),
             4 => OperandType::Literal(LiteralType::Bool),
-            5 => OperandType::RegisterIndex,
+            5 => OperandType::RegisterValue,
             _ => panic!("Invalid operand type: {:?}", value),
         }
     }

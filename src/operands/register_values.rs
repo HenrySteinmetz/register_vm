@@ -1,49 +1,39 @@
-use std::fmt::{Debug, Display};
+use crate::vm::VM;
+use std::fmt::Debug;
 
-#[derive(Copy, Clone)]
-pub union RegisterValue {
-    pub int: i64,
-    pub float: f64,
-    pub string_ptr: *const String,
-    pub bool: bool,
+#[derive(Copy, Clone, Debug)]
+pub enum RegisterValue {
+    Int(i64),
+    Float(f64),
+    Bool(bool),
+    String(usize),
 }
 
 impl PartialEq for RegisterValue {
     fn eq(&self, other: &Self) -> bool {
-        let s_bytes = unsafe { self.int };
-        let o_bytes = unsafe { other.int };
-        s_bytes == o_bytes
+        match (self, other) {
+            (RegisterValue::Int(a), RegisterValue::Int(b)) => a == b,
+            (RegisterValue::Float(a), RegisterValue::Float(b)) => a == b,
+            (RegisterValue::Bool(a), RegisterValue::Bool(b)) => a == b,
+            (RegisterValue::String(a), RegisterValue::String(b)) => a == b,
+            _ => false,
+        }
     }
 }
 
-impl Display for RegisterValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{}, {}, {},  {:?}",
-            unsafe { self.int },
-            unsafe { self.float },
-            unsafe { self.bool },
-            unsafe { self.string_ptr }
-        )
+impl VM {
+    pub fn display_register_value(&self, register: usize) -> String {
+        match self.registers[register] {
+            (RegisterValue::Int(value), _) => format!("{}", value),
+            (RegisterValue::Float(value), _) => format!("{}", value),
+            (RegisterValue::Bool(value), _) => format!("{}", value),
+            (RegisterValue::String(value), _) => format!("{}", self.strings[value]),
+        }
     }
 }
 
 impl Default for RegisterValue {
     fn default() -> Self {
-        Self { int: 0 }
-    }
-}
-
-impl Debug for RegisterValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "RegisterValue with the following possible values: \n\tint: `{}`\n\tfloat: `{}`\n\tboolean: `{}`\n\tstring_pointer: `{:?}`\n\t",
-            unsafe { self.int },
-            unsafe { self.float },
-            unsafe { self.bool },
-            unsafe { self.string_ptr }
-        )
+        Self::Int(0)
     }
 }

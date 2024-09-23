@@ -19,24 +19,21 @@ impl VM {
 
         match literal {
             Literal::Int(int) => {
-                self.registers[*register_idx] =
-                    (RegisterValue { int: *int }, LiteralType::Int as u8)
+                self.registers[*register_idx] = (RegisterValue::Int(*int), LiteralType::Int as u8)
             }
             Literal::Float(float) => {
                 self.registers[*register_idx] =
-                    (RegisterValue { float: *float }, LiteralType::Float as u8)
+                    (RegisterValue::Float(*float), LiteralType::Float as u8)
             }
             Literal::String(string) => {
                 self.registers[*register_idx] = (
-                    RegisterValue {
-                        string_ptr: self.alloc_string(string.clone()),
-                    },
+                    RegisterValue::String(self.alloc_string(string.clone())),
                     LiteralType::String as u8,
                 )
             }
             Literal::Bool(bool) => {
                 self.registers[*register_idx] =
-                    (RegisterValue { bool: *bool }, LiteralType::Bool as u8)
+                    (RegisterValue::Bool(*bool), LiteralType::Bool as u8)
             }
         }
     }

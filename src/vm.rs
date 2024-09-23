@@ -24,24 +24,39 @@ impl VM {
         OpCode::from(self.read_next_byte())
     }
 
-    pub fn decode_operand(&mut self, op_type: &OperandType) -> Operand {
+    pub fn decode_operand(&mut self, op_type: &OperandType, verbose: bool) -> Operand {
+        if verbose {
+            println!("\n  --- Decoding operand of type {:?} ---", op_type);
+        }
+
         match op_type {
             OperandType::RegisterIndex => Operand::RegisterIndex(self.read_next_byte() as usize),
             OperandType::RegisterValue => {
                 Operand::RegisterValue(self.registers[self.read_next_byte() as usize].0)
             }
-            OperandType::Literal(l_type) => Operand::Literal(self.decode_literal(l_type)),
+            OperandType::Literal(l_type) => Operand::Literal(self.decode_literal(l_type, verbose)),
             OperandType::Any => unreachable!(),
         }
     }
 
-    pub fn decode_literal(&mut self, l_type: &LiteralType) -> Literal {
+    pub fn decode_literal(&mut self, l_type: &LiteralType, verbose: bool) -> Literal {
+        if verbose {
+            println!("\n   --- Decoding literal of type: {:?} ---", l_type);
+        }
         match l_type {
             LiteralType::Int => Literal::Int(i64::from_le_bytes(self.read_next_8_bytes())),
             LiteralType::Float => Literal::Float(f64::from_le_bytes(self.read_next_8_bytes())),
             LiteralType::String => {
-                let len = usize::from_le_bytes(self.read_next_8_bytes());
-                let bytes = self.read_n_bytes_vec(len);
+                let len_bytes = self.read_next_8_bytes();
+                let len = usize::from_le_bytes(len_bytes);
+                let bytes = self.read_n_bytes(len);
+
+                if verbose {
+                    println!("    Length bytes: {:?}", len_bytes);
+                    println!("    String length: {}", len);
+                    println!("    UTF-8 bytes: {:?}", bytes);
+                }
+
                 let string = std::str::from_utf8(bytes.as_slice())
                     .expect("Invalid UTF-8 string!")
                     .to_owned();
@@ -62,59 +77,87 @@ impl VM {
         byte
     }
 
-    pub fn read_n_bytes_vec(&mut self, num: usize) -> Vec<u8> {
-        let mut bytes: Vec<u8> = Vec::with_capacity(num);
-        let _ = (0..num).map(|x| bytes[x] = self.read_next_byte());
-        bytes
-    }
-
     pub fn read_next_8_bytes(&mut self) -> [u8; 8] {
-        self.read_n_bytes::<8>()
+        let bytes = self.read_n_bytes(8);
+
+        bytes.try_into().unwrap_or_else(|v: Vec<u8>| {
+            panic!("Expected a Vec of length 8 but it was {}", v.len())
+        })
     }
 
-    pub fn read_n_bytes<const N: usize>(&mut self) -> [u8; N] {
-        let mut bytes = [0u8; N];
-        let _ = (0..N).map(|x| bytes[x] = self.read_next_byte());
+    pub fn read_n_bytes(&mut self, num: usize) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::with_capacity(num);
+        for _ in 0..num {
+            bytes.push(self.read_next_byte());
+        }
         bytes
     }
 
+    #[inline(always)]
     pub fn new() -> VM {
         VM::default()
     }
 
-    pub fn alloc_string(&mut self, str: String) -> *const String {
-        self.strings.push(str);
-        let string_idx = self.strings.len() - 1;
-        (&self.strings[string_idx]) as *const String
+    pub fn alloc_string(&mut self, str: String) -> usize {
+        self.strings.push(str.to_string());
+        self.strings.len() - 1
     }
 
-    pub fn run(&mut self, program: Vec<u8>) {
+    pub fn run(&mut self, program: Vec<u8>, verbose: bool) {
+        if verbose {
+            println!("---------------------------------\n|\tVM has started...\t|\n---------------------------------\n\n");
+        }
+
+        self.program = program;
+
         loop {
-            self.program = program.clone();
+            if verbose {
+                println!("--- New Instruction ---");
+                println!("Program counter: {}", self.program_counter);
+            }
+
             if self.program_counter >= self.program.len() {
                 break;
             }
+
             let opcode = self.decode_opcode();
+            #[cfg(test)]
             if opcode == OpCode::STOP {
-                self.halt();
+                println!("Stop was called!");
             }
 
             let mut operands: Vec<Operand> = Vec::with_capacity(4);
-            for param in opcode.expected_operands() {
-                let next_byte = self.read_next_byte();
-                println!("{}", next_byte);
-                let operand_type: OperandType = next_byte.into();
-                if &operand_type != param {
-                    panic!(
-                        "Expected operand type {:?}, found {:?}",
-                        param, operand_type
-                    );
+
+            if verbose {
+                println!(
+                    "Opcode: {:?}\nExpected operands: {:?}",
+                    opcode,
+                    opcode.expected_operands()
+                );
+            }
+
+            for ex in opcode.expected_operands() {
+                let operand_type: OperandType = self.read_next_byte().into();
+                if &operand_type != ex {
+                    if verbose {
+                        println!("Program dump: \n{:?}", self.program);
+                    }
+                    panic!("Expected operand type {:?}, found {:?}", ex, operand_type);
                 }
 
-                operands.push(self.decode_operand(&operand_type));
+                operands.push(self.decode_operand(&operand_type, verbose));
+            }
+
+            if verbose {
+                println!("\nOperands: {:?}\n", operands);
             }
 
             self.execute(&opcode, operands);
+        }
+
+        println!("\n\n Unexpected end of program!");
+        if verbose {
+            println!("\nProgram dump:\n{:?}", self.program);
         }
     }
 

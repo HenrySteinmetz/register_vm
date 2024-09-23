@@ -13,27 +13,12 @@ impl Add for Number {
     fn add(self, rhs: Self) -> Self::Output {
         match self {
             Number::Int(int1) => match rhs {
-                Number::Int(int2) => (RegisterValue { int: int1 + int2 }, 0),
-                Number::Float(float1) => (
-                    RegisterValue {
-                        float: float1 + int1 as f64,
-                    },
-                    1,
-                ),
+                Number::Int(int2) => (RegisterValue::Int(int1 + int2), 0),
+                Number::Float(float1) => (RegisterValue::Float(float1 + int1 as f64), 1),
             },
             Number::Float(float1) => match rhs {
-                Number::Int(int1) => (
-                    RegisterValue {
-                        float: float1 + int1 as f64,
-                    },
-                    1,
-                ),
-                Number::Float(float2) => (
-                    RegisterValue {
-                        float: float1 + float2,
-                    },
-                    1,
-                ),
+                Number::Int(int1) => (RegisterValue::Float(float1 + int1 as f64), 1),
+                Number::Float(float2) => (RegisterValue::Float(float1 + float2), 1),
             },
         }
     }
@@ -45,27 +30,12 @@ impl Sub for Number {
     fn sub(self, rhs: Self) -> Self::Output {
         match self {
             Number::Int(int1) => match rhs {
-                Number::Int(int2) => (RegisterValue { int: int1 - int2 }, 0),
-                Number::Float(float1) => (
-                    RegisterValue {
-                        float: float1 - int1 as f64,
-                    },
-                    1,
-                ),
+                Number::Int(int2) => (RegisterValue::Int(int1 - int2), 0),
+                Number::Float(float1) => (RegisterValue::Float(float1 - int1 as f64), 1),
             },
             Number::Float(float1) => match rhs {
-                Number::Int(int1) => (
-                    RegisterValue {
-                        float: float1 - int1 as f64,
-                    },
-                    1,
-                ),
-                Number::Float(float2) => (
-                    RegisterValue {
-                        float: float1 - float2,
-                    },
-                    1,
-                ),
+                Number::Int(int1) => (RegisterValue::Float(float1 - int1 as f64), 1),
+                Number::Float(float2) => (RegisterValue::Float(float1 - float2), 1),
             },
         }
     }
@@ -77,27 +47,12 @@ impl Mul for Number {
     fn mul(self, rhs: Self) -> Self::Output {
         match self {
             Number::Int(int1) => match rhs {
-                Number::Int(int2) => (RegisterValue { int: int1 * int2 }, 0),
-                Number::Float(float1) => (
-                    RegisterValue {
-                        float: float1 * int1 as f64,
-                    },
-                    1,
-                ),
+                Number::Int(int2) => (RegisterValue::Int(int1 * int2), 0),
+                Number::Float(float1) => (RegisterValue::Float(float1 * int1 as f64), 1),
             },
             Number::Float(float1) => match rhs {
-                Number::Int(int1) => (
-                    RegisterValue {
-                        float: float1 * int1 as f64,
-                    },
-                    1,
-                ),
-                Number::Float(float2) => (
-                    RegisterValue {
-                        float: float1 * float2,
-                    },
-                    1,
-                ),
+                Number::Int(int1) => (RegisterValue::Float(float1 * int1 as f64), 1),
+                Number::Float(float2) => (RegisterValue::Float(float1 * float2), 1),
             },
         }
     }
@@ -109,27 +64,12 @@ impl Div for Number {
     fn div(self, rhs: Self) -> Self::Output {
         match self {
             Number::Int(int1) => match rhs {
-                Number::Int(int2) => (RegisterValue { int: int1 / int2 }, 0),
-                Number::Float(float1) => (
-                    RegisterValue {
-                        float: float1 / int1 as f64,
-                    },
-                    1,
-                ),
+                Number::Int(int2) => (RegisterValue::Int(int1 / int2), 0),
+                Number::Float(float1) => (RegisterValue::Float(float1 / int1 as f64), 1),
             },
             Number::Float(float1) => match rhs {
-                Number::Int(int1) => (
-                    RegisterValue {
-                        float: float1 / int1 as f64,
-                    },
-                    1,
-                ),
-                Number::Float(float2) => (
-                    RegisterValue {
-                        float: float1 / float2,
-                    },
-                    1,
-                ),
+                Number::Int(int1) => (RegisterValue::Float(float1 / int1 as f64), 1),
+                Number::Float(float2) => (RegisterValue::Float(float1 / float2), 1),
             },
         }
     }
