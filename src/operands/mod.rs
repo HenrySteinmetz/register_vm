@@ -7,21 +7,11 @@ pub mod register_values;
 use literals::{Literal, LiteralType};
 use register_values::RegisterValue;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub enum Operand {
     Literal(Literal),
     RegisterValue(RegisterValue),
     RegisterIndex(usize),
-}
-
-impl Operand {
-    pub fn op_type(&self) -> OperandType {
-        match self {
-            Operand::Literal(x) => OperandType::Literal(x.l_type()),
-            Operand::RegisterValue(_) => OperandType::RegisterValue,
-            Operand::RegisterIndex(_) => OperandType::RegisterIndex,
-        }
-    }
 }
 
 impl std::fmt::Display for Operand {

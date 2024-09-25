@@ -1,17 +1,24 @@
 use std::collections::HashMap;
 
-use crate::operands::{
-    literals::{Literal, LiteralType},
-    register_values::RegisterValue,
-    Operand, OperandType,
-};
+extern crate log;
+extern crate pretty_env_logger;
 
-use crate::operations::OpCode;
+use ansi_term::Style;
+use log::{debug, info};
+
+use crate::{
+    fatal,
+    operands::{
+        literals::{Literal, LiteralType},
+        register_values::RegisterValue,
+        Operand, OperandType,
+    },
+    operations::OpCode,
+};
 
 #[derive(Default)]
 pub struct VM {
-    // Value and type of the register
-    pub registers: [(RegisterValue, u8); 32],
+    pub registers: [RegisterValue; 32],
     pub program: Vec<u8>,
     pub program_counter: usize,
     // Name and location of the label
@@ -24,25 +31,24 @@ impl VM {
         OpCode::from(self.read_next_byte())
     }
 
-    pub fn decode_operand(&mut self, op_type: &OperandType, verbose: bool) -> Operand {
-        if verbose {
-            println!("\n  --- Decoding operand of type {:?} ---", op_type);
-        }
+    pub fn decode_operand(&mut self, op_type: &OperandType) -> Operand {
+        let text = format!("--- Decoding operand of type {:?} ---", op_type);
+        info!("{}", Style::new().bold().paint(text));
 
         match op_type {
             OperandType::RegisterIndex => Operand::RegisterIndex(self.read_next_byte() as usize),
             OperandType::RegisterValue => {
-                Operand::RegisterValue(self.registers[self.read_next_byte() as usize].0)
+                Operand::RegisterValue(self.registers[self.read_next_byte() as usize])
             }
-            OperandType::Literal(l_type) => Operand::Literal(self.decode_literal(l_type, verbose)),
+            OperandType::Literal(l_type) => Operand::Literal(self.decode_literal(l_type)),
             OperandType::Any => unreachable!(),
         }
     }
 
-    pub fn decode_literal(&mut self, l_type: &LiteralType, verbose: bool) -> Literal {
-        if verbose {
-            println!("\n   --- Decoding literal of type: {:?} ---", l_type);
-        }
+    pub fn decode_literal(&mut self, l_type: &LiteralType) -> Literal {
+        let text = format!("--- Decoding literal of type: {:?} ---", l_type);
+        info!("{}", Style::new().bold().paint(text));
+
         match l_type {
             LiteralType::Int => Literal::Int(i64::from_le_bytes(self.read_next_8_bytes())),
             LiteralType::Float => Literal::Float(f64::from_le_bytes(self.read_next_8_bytes())),
@@ -51,11 +57,9 @@ impl VM {
                 let len = usize::from_le_bytes(len_bytes);
                 let bytes = self.read_n_bytes(len);
 
-                if verbose {
-                    println!("    Length bytes: {:?}", len_bytes);
-                    println!("    String length: {}", len);
-                    println!("    UTF-8 bytes: {:?}", bytes);
-                }
+                debug!("    Length bytes: {:?}", len_bytes);
+                debug!("    String length: {}", len);
+                debug!("    UTF-8 bytes: {:?}", bytes);
 
                 let string = std::str::from_utf8(bytes.as_slice())
                     .expect("Invalid UTF-8 string!")
@@ -81,7 +85,7 @@ impl VM {
         let bytes = self.read_n_bytes(8);
 
         bytes.try_into().unwrap_or_else(|v: Vec<u8>| {
-            panic!("Expected a Vec of length 8 but it was {}", v.len())
+            fatal!("Expected a Vec of length 8 but it was {}", v.len());
         })
     }
 
@@ -103,61 +107,52 @@ impl VM {
         self.strings.len() - 1
     }
 
-    pub fn run(&mut self, program: Vec<u8>, verbose: bool) {
-        if verbose {
-            println!("---------------------------------\n|\tVM has started...\t|\n---------------------------------\n\n");
-        }
+    pub fn run(&mut self, program: Vec<u8>) {
+        info!("{}", Style::new().bold().paint("---------------------------------\n|\tVM has started...\t|\n---------------------------------\n\n"));
 
         self.program = program;
 
         loop {
-            if verbose {
-                println!("--- New Instruction ---");
-                println!("Program counter: {}", self.program_counter);
-            }
+            info!("{}", Style::new().bold().paint("--- New Instruction ---"));
+            debug!("Program counter: {}", self.program_counter);
 
             if self.program_counter >= self.program.len() {
-                break;
+                debug!("Program dump:{:?}", self.program);
+                fatal!("Program counter exceeded the end of the program!");
             }
 
             let opcode = self.decode_opcode();
-            #[cfg(test)]
+
             if opcode == OpCode::STOP {
-                println!("Stop was called!");
+                debug!("Stop was called!");
+            }
+
+            // This is a hack to make the CL opcode work and must get a better solution
+            if opcode == OpCode::CL {
+                self.program[self.program_counter - 1] = 254;
             }
 
             let mut operands: Vec<Operand> = Vec::with_capacity(4);
 
-            if verbose {
-                println!(
-                    "Opcode: {:?}\nExpected operands: {:?}",
-                    opcode,
-                    opcode.expected_operands()
-                );
-            }
+            debug!(
+                "Opcode: {:?}\nExpected operands: {:?}",
+                opcode,
+                opcode.expected_operands()
+            );
 
             for ex in opcode.expected_operands() {
                 let operand_type: OperandType = self.read_next_byte().into();
                 if &operand_type != ex {
-                    if verbose {
-                        println!("Program dump: \n{:?}", self.program);
-                    }
-                    panic!("Expected operand type {:?}, found {:?}", ex, operand_type);
+                    debug!("Program dump: \n{:?}", self.program);
+                    fatal!("Expected operand type {:?}, found {:?}", ex, operand_type);
                 }
 
-                operands.push(self.decode_operand(&operand_type, verbose));
+                operands.push(self.decode_operand(&operand_type));
             }
 
-            if verbose {
-                println!("\nOperands: {:?}\n", operands);
-            }
+            debug!("Operands: {:?}\n", operands);
 
             self.execute(&opcode, operands);
-        }
-
-        println!("\n\n Unexpected end of program!");
-        if verbose {
-            println!("\nProgram dump:\n{:?}", self.program);
         }
     }
 
@@ -178,8 +173,11 @@ impl VM {
             CL => self.cl(operands),
             JL => self.jl(operands),
             JLE => self.jle(operands),
+            JLNE => self.jlne(operands),
             INC => self.inc(operands),
             DEC => self.dec(operands),
+            IGL => (),
+            NOP => (),
         }
     }
 }

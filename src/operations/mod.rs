@@ -5,6 +5,7 @@ pub mod div;
 pub mod inc;
 pub mod jl;
 pub mod jle;
+pub mod jlne;
 pub mod jmp;
 pub mod jmpb;
 pub mod jmpe;
@@ -34,8 +35,11 @@ pub enum OpCode {
     CL = 11,
     JL = 12,
     JLE = 13,
-    INC = 14,
-    DEC = 15,
+    JLNE = 14,
+    INC = 15,
+    DEC = 16,
+    IGL = 254,
+    NOP = 255,
 }
 
 impl OpCode {
@@ -49,9 +53,10 @@ impl OpCode {
             PRINT => &[Any],
             JMP | JMPB | JMPF => &[Literal(LiteralType::Int)],
             JL => &[Literal(LiteralType::String)],
-            JMPE | JLE => &[Literal(LiteralType::Int), Any, Any],
-            CL => &[Literal(LiteralType::String)],
+            JMPE | JLE | JLNE => &[Literal(LiteralType::String), Any, Any],
+            CL | IGL => &[Literal(LiteralType::String)],
             INC | DEC => &[RegisterIndex],
+            NOP => &[],
         }
     }
 }
@@ -73,7 +78,12 @@ impl From<u8> for OpCode {
             11 => OpCode::CL,
             12 => OpCode::JL,
             13 => OpCode::JLE,
-            _ => panic!("Invalid OpCode"),
+            14 => OpCode::JLNE,
+            15 => OpCode::INC,
+            16 => OpCode::DEC,
+            254 => OpCode::IGL,
+            255 => OpCode::NOP,
+            _ => panic!("Invalid OpCode received byte: {}", value),
         }
     }
 }
@@ -95,8 +105,11 @@ impl Into<String> for OpCode {
             OpCode::CL => "CL".to_string(),
             OpCode::JL => "JL".to_string(),
             OpCode::JLE => "JLE".to_string(),
+            OpCode::JLNE => "JLNE".to_string(),
             OpCode::INC => "INC".to_string(),
             OpCode::DEC => "DEC".to_string(),
+            OpCode::IGL => "IGL".to_string(),
+            OpCode::NOP => "NOP".to_string(),
         }
     }
 }

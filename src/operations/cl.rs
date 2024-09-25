@@ -2,7 +2,7 @@ use crate::{operands::Operand, vm::VM};
 
 impl VM {
     pub fn cl(&mut self, operands: Vec<Operand>) {
-        let location = self.program_counter + 1 as usize;
+        let location = self.program_counter as usize;
         let label = match &operands[0] {
             Operand::Literal(lit) => lit.get_string(),
             _ => unreachable!(),

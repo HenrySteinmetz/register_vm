@@ -31,30 +31,12 @@ impl Literal {
         }
     }
 
-    pub fn get_bool(&self) -> bool {
-        match self {
-            Self::Bool(b) => *b,
-            Self::Int(_) => panic!("Invalid literal type: expected a boolean but got: `Int`"),
-            Self::Float(_) => panic!("Invalid literal type: expected a boolean but got: `Float`"),
-            Self::String(_) => panic!("Invalid literal type: expected a boolean but got: `String`"),
-        }
-    }
-
     pub fn get_string(&self) -> String {
         match self {
             Self::String(s) => s.clone(),
             Self::Int(_) => panic!("Invalid literal type: expected a string but got: `Int`"),
             Self::Float(_) => panic!("Invalid literal type: expected a string but got: `Float`"),
             Self::Bool(_) => panic!("Invalid literal type: expected a string but got: `Bool`"),
-        }
-    }
-
-    pub fn l_type(&self) -> LiteralType {
-        match self {
-            Literal::Int(_) => LiteralType::Int,
-            Literal::Float(_) => LiteralType::Float,
-            Literal::String(_) => LiteralType::String,
-            Literal::Bool(_) => LiteralType::Bool,
         }
     }
 }
@@ -71,13 +53,12 @@ impl std::fmt::Display for Literal {
 }
 
 #[derive(Debug)]
-#[repr(u8)]
 pub enum LiteralType {
-    Int = 0,
-    Float = 1,
-    String = 2,
-    Bool = 3,
-    Any = 255,
+    Int,
+    Float,
+    String,
+    Bool,
+    Any,
 }
 
 impl PartialEq for LiteralType {
@@ -90,19 +71,6 @@ impl PartialEq for LiteralType {
             (LiteralType::Any, _) => true,
             (_, LiteralType::Any) => true,
             _ => false,
-        }
-    }
-}
-
-impl From<u8> for LiteralType {
-    fn from(value: u8) -> Self {
-        match value {
-            0 => LiteralType::Int,
-            1 => LiteralType::Float,
-            2 => LiteralType::String,
-            3 => LiteralType::Bool,
-            255 => LiteralType::Any,
-            _ => panic!("Invalid literal type: {:?}", value.to_le_bytes()),
         }
     }
 }

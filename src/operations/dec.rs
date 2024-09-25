@@ -11,9 +11,9 @@ impl VM {
         };
         let value = self.registers[register_index as usize];
         let int = match value {
-            (RegisterValue::Int(int), _) => int - 1,
+            RegisterValue::Int(int) => int - 1,
             _ => panic!("Decrement expected register with integer value!"),
         };
-        self.registers[register_index as usize].0 = RegisterValue::Int(int);
+        self.registers[register_index as usize] = RegisterValue::Int(int);
     }
 }

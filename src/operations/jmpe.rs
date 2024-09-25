@@ -7,7 +7,7 @@ impl VM {
             _ => unreachable!(),
         };
 
-        if &operands[1] == &operands[2] {
+        if self.operands_eq([&operands[0], &operands[1]]) {
             self.program_counter = location as usize;
         }
     }

@@ -1,7 +1,5 @@
 use crate::{
-    operands::literals::{Literal, LiteralType},
-    operands::register_values::RegisterValue,
-    operands::Operand,
+    operands::literals::Literal, operands::register_values::RegisterValue, operands::Operand,
     vm::VM,
 };
 
@@ -18,23 +16,13 @@ impl VM {
         };
 
         match literal {
-            Literal::Int(int) => {
-                self.registers[*register_idx] = (RegisterValue::Int(*int), LiteralType::Int as u8)
-            }
-            Literal::Float(float) => {
-                self.registers[*register_idx] =
-                    (RegisterValue::Float(*float), LiteralType::Float as u8)
-            }
+            Literal::Int(int) => self.registers[*register_idx] = RegisterValue::Int(*int),
+            Literal::Float(float) => self.registers[*register_idx] = RegisterValue::Float(*float),
             Literal::String(string) => {
-                self.registers[*register_idx] = (
-                    RegisterValue::String(self.alloc_string(string.clone())),
-                    LiteralType::String as u8,
-                )
-            }
-            Literal::Bool(bool) => {
                 self.registers[*register_idx] =
-                    (RegisterValue::Bool(*bool), LiteralType::Bool as u8)
+                    RegisterValue::String(self.alloc_string(string.clone()))
             }
+            Literal::Bool(bool) => self.registers[*register_idx] = RegisterValue::Bool(*bool),
         }
     }
 }

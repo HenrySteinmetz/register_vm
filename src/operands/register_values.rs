@@ -1,4 +1,3 @@
-use crate::vm::VM;
 use std::fmt::Debug;
 
 #[derive(Copy, Clone, Debug)]
@@ -17,17 +16,6 @@ impl PartialEq for RegisterValue {
             (RegisterValue::Bool(a), RegisterValue::Bool(b)) => a == b,
             (RegisterValue::String(a), RegisterValue::String(b)) => a == b,
             _ => false,
-        }
-    }
-}
-
-impl VM {
-    pub fn display_register_value(&self, register: usize) -> String {
-        match self.registers[register] {
-            (RegisterValue::Int(value), _) => format!("{}", value),
-            (RegisterValue::Float(value), _) => format!("{}", value),
-            (RegisterValue::Bool(value), _) => format!("{}", value),
-            (RegisterValue::String(value), _) => format!("{}", self.strings[value]),
         }
     }
 }
