@@ -15,5 +15,5 @@ pub enum Verbosity {
 pub struct Cli {
     pub input: PathBuf,
     #[arg(short, long)]
-    pub verbosity: Verbosity,
+    pub verbosity: Option<Verbosity>,
 }

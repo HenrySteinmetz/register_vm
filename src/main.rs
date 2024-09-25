@@ -10,7 +10,9 @@ use clap::Parser;
 use cli::{Cli, Verbosity};
 use std::{env::set_var, fs::read};
 
+#[cfg(debug_assertions)]
 extern crate log;
+#[cfg(debug_assertions)]
 extern crate pretty_env_logger;
 
 macro_rules! fatal {
@@ -27,11 +29,14 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.verbosity {
-        Verbosity::Info => set_var("RUST_LOG", "info"),
-        Verbosity::Debug => set_var("RUST_LOG", "debug"),
-        Verbosity::Trace => set_var("RUST_LOG", "trace"),
-        Verbosity::Warn => set_var("RUST_LOG", "warn"),
-        Verbosity::Quiet => set_var("RUST_LOG", "off"),
+        Some(v) => match v {
+            Verbosity::Info => set_var("RUST_LOG", "info"),
+            Verbosity::Debug => set_var("RUST_LOG", "debug"),
+            Verbosity::Trace => set_var("RUST_LOG", "trace"),
+            Verbosity::Warn => set_var("RUST_LOG", "warn"),
+            Verbosity::Quiet => set_var("RUST_LOG", "off"),
+        },
+        None => set_var("RUST_LOG", "info"),  // Default verbosity if none specified.
     }
 
     pretty_env_logger::init();

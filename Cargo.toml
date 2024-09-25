@@ -1,10 +1,16 @@
 [package]
 name = "register_vm"
-version = "0.1.0"
+version = "0.2.0"
+authors = ["Henry Steinmetz"]
+repository = "https://github.com/HenrySteinmetz/register_vm"
+homepage = "https://github.com/HenrySteinmetz/register_vm"
+license = "MIT"
+description = "A virtual machine interpreter for my custom register-based assembly-style language"
+keywords = ["vm", "register", "virtual machine", "language"]
 edition = "2021"
 
 [dependencies]
 ansi_term = "0.12.1"
 clap = { version = "4.5.18", features = ["derive"] }
-log = "0.4.22"
+log = { version = "0.4.22", features = ["release_max_level_error"] }
 pretty_env_logger = "0.5.0"
